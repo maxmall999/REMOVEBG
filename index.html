@@ -3,43 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI BG Remover</title>
+    <title>AI Background Remover</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6366f1">
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
     <style>
         :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .container { background: var(--card); padding: 2rem; border-radius: 16px; width: 100%; max-width: 500px; text-align: center; border: 1px solid #334155; }
-        .upload-box { border: 2px dashed #475569; border-radius: 12px; padding: 30px; cursor: pointer; position: relative; margin-bottom: 20px; }
-        .upload-box:hover { border-color: var(--primary); }
+        .container { background: var(--card); padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 500px; text-align: center; border: 1px solid #334155; }
+        .upload-box { border: 2px dashed #475569; border-radius: 12px; padding: 40px; cursor: pointer; position: relative; margin-bottom: 20px; transition: 0.3s; }
+        .upload-box:hover { border-color: var(--primary); background: #243146; }
         input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
         #resImg { max-width: 100%; margin-top: 20px; display: none; border-radius: 8px; background-image: conic-gradient(#334155 0.25turn, #475569 0.25turn 0.5turn, #334155 0.5turn 0.75turn, #475569 0.75turn); background-size: 20px 20px; }
-        .loader { display: none; width: 30px; height: 30px; border: 3px solid #fff; border-bottom-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .btn { background: var(--primary); color: white; padding: 12px; border-radius: 8px; border: none; cursor: pointer; width: 100%; display: none; font-weight: bold; margin-top: 10px; }
+        .loader { display: none; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 8px; border: none; cursor: pointer; width: 100%; display: none; font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>AI BG Remover</h1>
-        <div class="upload-box">
-            <p>📸 Tap to Upload Image</p>
+        <div class="upload-box" id="dropZone">
+            <p>📸 Tap or Drag to Upload</p>
             <input type="file" id="fileInput" accept="image/*">
         </div>
         <div class="loader" id="loader"></div>
         <div id="status">Ready.</div>
         <img id="resImg">
-        <button class="btn" id="dlBtn">Download PNG</button>
+        <button class="btn" id="dlBtn">Download Transparent PNG</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/bundle.umd.js"></script>
 
     <script>
+        // Register Service Worker for Android PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
         const fileInput = document.getElementById('fileInput');
         const status = document.getElementById('status');
         const loader = document.getElementById('loader');
@@ -50,17 +50,23 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            // Clear old results
+            // Check if library is available
+            if (typeof imglyRemoveBackground === 'undefined') {
+                status.innerHTML = "<span style='color: #ef4444'>Library not loaded. Please refresh!</span>";
+                return;
+            }
+
+            // UI Loading State
             resImg.style.display = 'none';
             dlBtn.style.display = 'none';
             loader.style.display = 'block';
-            status.textContent = "AI is thinking...";
+            status.textContent = "Removing background... (First time takes longer)";
 
             try {
-                // IMPORTANT: Config must point to the static data files
+                // IMPORTANT CONFIGURATION
                 const config = {
                     publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/',
-                    debug: true
+                    fetchArgs: { mode: 'cors' } // Ensures cross-origin works
                 };
 
                 const blob = await imglyRemoveBackground(file, config);
@@ -69,13 +75,13 @@
                 resImg.src = url;
                 resImg.style.display = 'block';
                 loader.style.display = 'none';
-                status.textContent = "Success!";
+                status.textContent = "Finished!";
                 dlBtn.style.display = 'block';
 
                 dlBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'transparent_' + file.name;
+                    a.download = 'no-bg-' + file.name.split('.')[0] + '.png';
                     a.click();
                 };
             } catch (err) {
