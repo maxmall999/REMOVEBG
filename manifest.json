@@ -1,7 +1,7 @@
 {
   "name": "AI Background Remover",
   "short_name": "BG Remover",
-  "start_url": ".",
+  "start_url": "/YOUR_REPO_NAME/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#6366f1",
